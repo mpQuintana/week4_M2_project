@@ -12,8 +12,8 @@ from pandas import ExcelFile
 
 from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
-from sklearn.cross_validation import KFold
-from sklearn.svm import LinearSVC
+from sklearn.cross_validation import KFold  # deprecated in sklearn 0.20 -> from sklearn.model_selection import KFold
+from sklearn.svm import LinearSVC, SVC
 
 from plot_segments import plot_segments
 
@@ -21,8 +21,8 @@ from plot_segments import plot_segments
 num_segments_per_jacket = 40
 add_gaussian_noise_to_features = False
 sigma_noise = 0.1
-plot_labeling = False
-plot_coefficients = False
+plot_labeling = False  # False
+plot_coefficients = False  # False
 
 
 """ 
@@ -39,7 +39,7 @@ labels_segments = []
 segments = []
 for row in it:
     ide = row[1]['ide']
-    segments.append(np.load(os.path.join('segments',ide+'_front.npy')))
+    segments.append(np.load(os.path.join('segments',ide+'_front.npy'), encoding='latin1', allow_pickle=True)) ### Modified
     labels_segments.append(list(row[1].values[-num_segments_per_jacket:]))
 
 labels_segments = np.array(labels_segments).astype(int)
@@ -93,7 +93,10 @@ if add_gaussian_noise_to_features:
 DEFINE HERE YOUR GRAPHICAL MODEL AND CHOOSE ONE LEARNING METHOD
 (OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM)
 """      
-    
+
+model = ChainCRF()
+ssvm = FrankWolfeSSVM(model=model, C=100000)
+
 
 """ 
 Compare SVM with S-SVM doing k-fold cross validation, k=5, see scikit-learn.org 
@@ -106,6 +109,7 @@ scores_svm = np.zeros(n_folds)
 wrong_segments_crf = []
 wrong_segments_svm = []
 
+# kf = KFold(n_splits=n_folds) ### Modified ->
 kf = KFold(num_jackets, n_folds=n_folds)
 fold = 0
 for train_index, test_index in kf: 
@@ -118,12 +122,20 @@ for train_index, test_index in kf:
     Y_train = Y[train_index]
     X_test = X[test_index]
     Y_test = Y[test_index]
+
+    X_train_vector = np.reshape(X_train, (X_train.shape[0] * X_train.shape[1], X_train.shape[2]))
+    X_test_vector = np.reshape(X_test, (X_test.shape[0] * X_test.shape[1], X_test.shape[2]))
+    Y_train_vector = np.reshape(Y_train, (Y_train.shape[0] * Y_train.shape[1]))
+    Y_test_vector = np.reshape(Y_test, (Y_test.shape[0] * Y_test.shape[1]))
                              
     """ YOUR S-SVM TRAINING CODE HERE """
+    ssvm.fit(X_train, Y_train)
 
-    
-    
     """ LABEL THE TESTING SET AND PRINT RESULTS """
+    y_pred_ssvm = ssvm.predict(X_test)
+    ssvm_score = ssvm.score(X_test, Y_test)
+    scores_crf[fold] = ssvm_score
+    wrong_segments_crf.append( np.size(Y_test) - np.sum( y_pred_ssvm == Y_test ) )
 
     
     """ figure showing the result of classification of segments for
@@ -139,9 +151,14 @@ for train_index, test_index in kf:
 
     """ YOUR LINEAR SVM TRAINING CODE HERE """
 
+    SVMclassifier = LinearSVC()
+    SVMclassifier.fit(X_train_vector, Y_train_vector)
+
 
     """ LABEL THE TESTING SET AND PRINT RESULTS """
-
+    y_predicted = SVMclassifier.predict(X_test_vector)
+    wrong_segments_svm.append(len(Y_test_vector) - np.sum(Y_test_vector == y_predicted))
+    scores_svm[fold] = np.sum(Y_test_vector == y_predicted) / len(Y_test_vector)
 
     fold += 1
     

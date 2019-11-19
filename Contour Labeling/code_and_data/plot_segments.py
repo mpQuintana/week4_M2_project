@@ -17,7 +17,8 @@ def plot_segments(segments, caption='', labels_segments=None):
         else:
             color = colors[labels_segments[n]]
         
-        plt.plot([s.y0, s.y1], [s.x0, s.x1], 'o-', color=color,linewidth=2)                    
+        plt.plot([s.y0, s.y1], [s.x0, s.x1], 'o-', color=color,linewidth=2)
+        print("segment ", n, ": ", [s.y0, s.y1], [s.x0, s.x1], labels_segments[n])
         plt.text( (s.y0+s.y1)/2, (s.x0+s.x1)/2, str(n), color='k')
     
     plt.axis('equal')
