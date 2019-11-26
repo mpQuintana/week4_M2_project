@@ -59,7 +59,7 @@ disp('create UGM model');
 if ~isempty(edgePot)
 
     % color clustering
-    [~,c] = max(reshape(data_term,[NumFils*NumCols K]),[],2);
+    [~,c] = min(reshape(data_term,[NumFils*NumCols K]),[],2);
     %?[~,c] = max(data_term, [], 2);
     im_c= reshape(mu_color(c,:),size(im));
     
@@ -73,8 +73,8 @@ if ~isempty(edgePot)
     % Max-sum
     display('Max-sum'); tic;
     decodeLBP = UGM_Decode_LBP(nodePot,edgePot,edgeStruct);
-    im_bp = reshape(mu_color(decodeLBP,:),size(im));
-    toc;
+    %im_bp = reshape(mu_color(decodeLBP,:),size(im));
+    %toc;
     
     
     % TODO: apply other inference algorithms and compare their performance
@@ -85,8 +85,8 @@ if ~isempty(edgePot)
     figure
     subplot(2,2,1),imshow(Lab2RGB(im));xlabel('Original');
     subplot(2,2,2),imshow(Lab2RGB(im_c),[]);xlabel('Clustering without GM');
-    subplot(2,2,3),imshow(Lab2RGB(im_bp),[]);xlabel('Max-Sum');
-    %subplot(2,2,4),imshow(im_lbp,[]);xlabel('Loopy Belief Propagation');
+    %subplot(2,2,3),imshow(Lab2RGB(im_bp),[]);xlabel('Max-Sum');
+    subplot(2,2,4),imshow(im_lbp,[]);xlabel('Loopy Belief Propagation');
     
 else
    
